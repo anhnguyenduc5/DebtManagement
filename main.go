@@ -60,11 +60,18 @@ func main() {
 			if players[i].finalMoney < 0 && players[j].finalMoney > 0 {
 				debt := min(-players[i].finalMoney, players[j].finalMoney)
 				players[i].debts += "\n Player " + players[i].name + " needs to pay Player " + players[j].name + " a total of: $" + strconv.Itoa(debt)
+				players[i].finalMoney += debt
+				players[j].finalMoney -= debt
 			} else if players[i].finalMoney > 0 && players[j].finalMoney < 0 {
 				debt := min(players[i].finalMoney, -players[j].finalMoney)
 				players[j].debts += "\n Player " + players[j].name + " needs to pay Player " + players[i].name + " a total of: $" + strconv.Itoa(debt)
+				players[i].finalMoney -= debt
+				players[j].finalMoney += debt
 			}
 		}
+	}
+	for i := 0; i < numberPlayer; i++ {
+		players[i].finalMoney = (capitalOfEach - players[i].totalMoneyGet) * -1
 	}
 	printResults()
 }
