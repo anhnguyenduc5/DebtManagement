@@ -1,15 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"math/rand"
-	"os"
-	"strconv"
 	"time"
 )
 
-var reader = bufio.NewReader(os.Stdin)
 var players []*Player
 var capitalOfEach int
 
@@ -18,19 +14,52 @@ type Player struct {
 	totalMoneyGet  int
 	totalRoundsWon int
 	finalMoney     int
-	debts          string
+	debts          map[string]int
 }
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
+	numberPlayer, betAmount := inputPlayersInfo()
+	calculate(betAmount, numberPlayer)
+	printResults()
+}
+
+func calculate(betAmount int, numberPlayer int) {
+	var totalRoundsPlayed int
+	for _, player := range players {
+		totalRoundsPlayed += player.totalRoundsWon
+	}
+	capitalOfEach = totalRoundsPlayed * betAmount
+	for i := 0; i < numberPlayer; i++ {
+		players[i].finalMoney = (capitalOfEach - players[i].totalMoneyGet) * -1
+	}
+	for i := 0; i < numberPlayer; i++ {
+		for j := i + 1; j < numberPlayer; j++ {
+			if players[i].finalMoney < 0 && players[j].finalMoney > 0 {
+				debt := findMin(-players[i].finalMoney, players[j].finalMoney)
+				players[i].debts[players[j].name] = debt
+				players[i].finalMoney += debt
+				players[j].finalMoney -= debt
+			} else if players[i].finalMoney > 0 && players[j].finalMoney < 0 {
+				debt := findMin(players[i].finalMoney, -players[j].finalMoney)
+				players[j].debts[players[i].name] = debt
+				players[i].finalMoney -= debt
+				players[j].finalMoney += debt
+			}
+		}
+	}
+	for i := 0; i < numberPlayer; i++ {
+		players[i].finalMoney = (capitalOfEach - players[i].totalMoneyGet) * -1
+	}
+}
+
+func inputPlayersInfo() (int, int) {
 	var numberPlayer, betAmount int
 	fmt.Println("Input number of player: ")
 	fmt.Scan(&numberPlayer)
 	fmt.Println("Input amount of bet: ")
 	fmt.Scan(&betAmount)
 	players = make([]*Player, numberPlayer)
-	// input name
-	//tinh so tien von moi nguoi can dat capitalOfEach /totalMoneySpent = tong so van choi * betamount
 	for i := 0; i < numberPlayer; i++ {
 		fmt.Printf("Input name of player %d: ", i+1)
 		var name string
@@ -42,40 +71,12 @@ func main() {
 			name:           name,
 			totalRoundsWon: roundsWon,
 			totalMoneyGet:  roundsWon * betAmount * numberPlayer,
+			debts:          make(map[string]int),
 		}
 	}
-	var totalRoundsPlayed int
-	for _, player := range players {
-		totalRoundsPlayed += player.totalRoundsWon
-	}
-	// tong so von cua moi nguoi
-	capitalOfEach = totalRoundsPlayed * betAmount
-	for i := 0; i < numberPlayer; i++ {
-		players[i].finalMoney = (capitalOfEach - players[i].totalMoneyGet) * -1
-	}
-	// loop qua: loop 1: lay finalMoney của player 1
-	// loop 2: so sánh giá trị của player 2, nếu ai âm thì phải trả tiền cho người dương mot so tien = duong + am
-	for i := 0; i < numberPlayer; i++ {
-		for j := i + 1; j < numberPlayer; j++ {
-			if players[i].finalMoney < 0 && players[j].finalMoney > 0 {
-				debt := min(-players[i].finalMoney, players[j].finalMoney)
-				players[i].debts += "\n Player " + players[i].name + " needs to pay Player " + players[j].name + " a total of: $" + strconv.Itoa(debt)
-				players[i].finalMoney += debt
-				players[j].finalMoney -= debt
-			} else if players[i].finalMoney > 0 && players[j].finalMoney < 0 {
-				debt := min(players[i].finalMoney, -players[j].finalMoney)
-				players[j].debts += "\n Player " + players[j].name + " needs to pay Player " + players[i].name + " a total of: $" + strconv.Itoa(debt)
-				players[i].finalMoney -= debt
-				players[j].finalMoney += debt
-			}
-		}
-	}
-	for i := 0; i < numberPlayer; i++ {
-		players[i].finalMoney = (capitalOfEach - players[i].totalMoneyGet) * -1
-	}
-	printResults()
+	return numberPlayer, betAmount
 }
-func min(a, b int) int {
+func findMin(a, b int) int {
 	if a < b {
 		return a
 	}
@@ -84,7 +85,14 @@ func min(a, b int) int {
 func printResults() {
 	fmt.Println("\nFinal results:")
 	for _, player := range players {
-		fmt.Printf("Player %s spent: %d $, gain: %d $, final money: %d$,%s\n",
-			player.name, capitalOfEach, player.totalMoneyGet, player.finalMoney, player.debts)
+		fmt.Printf("Player %s spent: %d $, gain: %d $, final money: %d$\n",
+			player.name, capitalOfEach, player.totalMoneyGet, player.finalMoney)
+
+		if len(player.debts) != 0 {
+			for debtor, amount := range player.debts {
+				fmt.Printf(" %s need to pay to %s: %d $,", player.name, debtor, amount)
+			}
+			fmt.Println()
+		}
 	}
 }
