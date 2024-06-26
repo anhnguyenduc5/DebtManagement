@@ -61,12 +61,6 @@ func handleDebt(debtorIndex, creditorIndex int) {
 	players[debtorIndex].finalMoneyTemp += debt
 	players[creditorIndex].finalMoneyTemp -= debt
 }
-func findMin(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
 func inputPlayersInfo() (int, int) {
 	var numberPlayer, betAmount int
 	fmt.Println("Input number of player: ")
@@ -89,12 +83,6 @@ func inputPlayersInfo() (int, int) {
 		}
 	}
 	return numberPlayer, betAmount
-}
-func calculateTotalRoundsWon(players []*Player, index int) int {
-	if index == len(players) {
-		return 0
-	}
-	return calculateTotalRoundsWon(players, index+1) + players[index].totalRoundsWon
 }
 func printResults() {
 	fmt.Println("\nFinal results:")
