@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/thoas/go-funk"
 	"math/rand"
 	"time"
 )
@@ -14,6 +15,7 @@ type Player struct {
 	totalMoneyGet  int
 	totalRoundsWon int
 	finalMoney     int
+	finalMoneyTemp int
 	debts          map[string]int
 }
 
@@ -25,34 +27,46 @@ func main() {
 }
 
 func calculate(betAmount int, numberPlayer int) {
-	var totalRoundsPlayed int
-	for _, player := range players {
-		totalRoundsPlayed += player.totalRoundsWon
-	}
+	totalRoundsPlayed := calculateTotalRoundsPlayed()
 	capitalOfEach = totalRoundsPlayed * betAmount
-	for i := 0; i < numberPlayer; i++ {
-		players[i].finalMoney = (capitalOfEach - players[i].totalMoneyGet) * -1
-	}
+	calculateFinalMoney(numberPlayer)
 	for i := 0; i < numberPlayer; i++ {
 		for j := i + 1; j < numberPlayer; j++ {
 			if players[i].finalMoney < 0 && players[j].finalMoney > 0 {
-				debt := findMin(-players[i].finalMoney, players[j].finalMoney)
-				players[i].debts[players[j].name] = debt
-				players[i].finalMoney += debt
-				players[j].finalMoney -= debt
+				handleDebt(i, j)
 			} else if players[i].finalMoney > 0 && players[j].finalMoney < 0 {
-				debt := findMin(players[i].finalMoney, -players[j].finalMoney)
-				players[j].debts[players[i].name] = debt
-				players[i].finalMoney -= debt
-				players[j].finalMoney += debt
+				handleDebt(j, i)
 			}
 		}
 	}
-	for i := 0; i < numberPlayer; i++ {
-		players[i].finalMoney = (capitalOfEach - players[i].totalMoneyGet) * -1
-	}
 }
 
+func calculateFinalMoney(numberPlayer int) {
+	for i := 0; i < numberPlayer; i++ {
+		players[i].finalMoney = (capitalOfEach - players[i].totalMoneyGet) * -1
+		players[i].finalMoneyTemp = players[i].finalMoney
+	}
+}
+func calculateTotalRoundsPlayed() int {
+	totalRoundsPlayed := funk.Reduce(players, func(acc interface{}, player interface{}) interface{} {
+		roundsWon := player.(*Player).totalRoundsWon
+		return acc.(int) + roundsWon
+	}, 0).(int)
+	return totalRoundsPlayed
+}
+
+func handleDebt(debtorIndex, creditorIndex int) {
+	debt := min(-players[debtorIndex].finalMoneyTemp, players[creditorIndex].finalMoneyTemp)
+	players[debtorIndex].debts[players[creditorIndex].name] = debt
+	players[debtorIndex].finalMoneyTemp += debt
+	players[creditorIndex].finalMoneyTemp -= debt
+}
+func findMin(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
 func inputPlayersInfo() (int, int) {
 	var numberPlayer, betAmount int
 	fmt.Println("Input number of player: ")
@@ -76,11 +90,11 @@ func inputPlayersInfo() (int, int) {
 	}
 	return numberPlayer, betAmount
 }
-func findMin(a, b int) int {
-	if a < b {
-		return a
+func calculateTotalRoundsWon(players []*Player, index int) int {
+	if index == len(players) {
+		return 0
 	}
-	return b
+	return calculateTotalRoundsWon(players, index+1) + players[index].totalRoundsWon
 }
 func printResults() {
 	fmt.Println("\nFinal results:")
